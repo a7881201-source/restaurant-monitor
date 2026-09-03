@@ -1,30 +1,22 @@
-import requests
-import os
-import smtplib
-from email.mime.text import MIMEText
+name: Restaurant Monitor
 
-EMAIL = os.environ["EMAIL_USER"]
-PASSWORD = os.environ["EMAIL_PASSWORD"]
+on:
+  workflow_dispatch:
 
-url = "https://tw.eztable.com/restaurant/17768"
+jobs:
+  test:
+    runs-on: ubuntu-latest
 
-response = requests.get(
-    url,
-    headers={
-        "User-Agent": "Mozilla/5.0"
-    }
-)
+    steps:
+      - uses: actions/checkout@v4
 
-html = response.text[:2000]
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-msg = MIMEText(html)
+      - run: pip install -r requirements.txt
 
-msg["Subject"] = "EZTABLE測試"
-msg["From"] = EMAIL
-msg["To"] = EMAIL
-
-with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-    smtp.login(EMAIL, PASSWORD)
-    smtp.send_message(msg)
-
-print("Mail Sent")
+      - run: python monitor.py
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
