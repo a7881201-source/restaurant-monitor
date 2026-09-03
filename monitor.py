@@ -1,38 +1,30 @@
-import requests
+from playwright.sync_api import sync_playwright
 import os
 import smtplib
 from email.mime.text import MIMEText
-from bs4 import BeautifulSoup
 
 EMAIL = os.environ["EMAIL_USER"]
 PASSWORD = os.environ["EMAIL_PASSWORD"]
 
-url = "https://tw.eztable.com/restaurant/17768"
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
 
-response = requests.get(
-    url,
-    headers={"User-Agent": "Mozilla/5.0"}
-)
+    page = browser.new_page()
 
-soup = BeautifulSoup(response.text, "html.parser")
+    page.goto(
+        "https://tw.eztable.com/restaurant/17768",
+        wait_until="networkidle"
+    )
 
-result = []
+    title = page.title()
 
-result.append("TITLE:")
-result.append(soup.title.text if soup.title else "No Title")
+    content = page.content()[:5000]
 
-result.append("\nLINKS:")
+    browser.close()
 
-for link in soup.find_all("a")[:50]:
-    href = link.get("href")
-    if href:
-        result.append(href)
+msg = MIMEText(content)
 
-mail_text = "\n".join(result)
-
-msg = MIMEText(mail_text)
-
-msg["Subject"] = "EZTABLE Links Test"
+msg["Subject"] = f"Playwright Test - {title}"
 msg["From"] = EMAIL
 msg["To"] = EMAIL
 
@@ -40,4 +32,4 @@ with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
     smtp.login(EMAIL, PASSWORD)
     smtp.send_message(msg)
 
-print("Mail Sent")
+print("sent")
